@@ -1,0 +1,22 @@
+name: Master node
+
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./master_node
+    steps:
+      - uses: actions/checkout@v3
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: '26'
+          rebar3-version: '3.22.1'
+      - name: Lint
+        run: rebar3 lint
+        working-directory: ${{github.workspace}}
+      - name: Run tests
+        run: rebar3 eunit -v
+        working-directory: ${{github.workspace}}
