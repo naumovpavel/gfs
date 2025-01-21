@@ -5,9 +5,11 @@ on: push
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: erlang:27
     defaults:
       run:
-        working-directory: ./master_node
+        working-directory: ./cli
     steps:
       - uses: actions/checkout@v3
       - uses: erlef/setup-beam@v1
