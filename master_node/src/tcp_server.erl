@@ -45,7 +45,8 @@ send_message(Socket, Data) ->
     gen_tcp:send(Socket, <<Size:32, Data/binary>>).
 
 handle_request({register, Host, Blocks}) ->
-    master_node_server:register_blocks(Host, Blocks);
+    master_node_server:register_blocks(Host, Blocks),
+    ok;
 handle_request({assign, Size}) ->
     master_node_server:assign(Size);
 handle_request({read, File, Size, Offset}) ->

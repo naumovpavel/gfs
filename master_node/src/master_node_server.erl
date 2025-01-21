@@ -17,7 +17,7 @@ init([]) ->
     {ok, #state{}}.
 
 register_blocks(Host, Blocks) ->
-    gen_server:call(?MODULE, {register, Host, Blocks}).
+    gen_server:cast(?MODULE, {register, Host, Blocks}).
 
 complete_file(File, Blocks) ->
     gen_server:call(?MODULE, {complete, File, Blocks}).
@@ -28,22 +28,6 @@ assign(Size) ->
 read(File, Size, Offset) ->
     gen_server:call(?MODULE, {read, File, Size, Offset}).
 
-handle_call({register, Host, Blocks}, _From, State) ->
-    MaxBlock = lists:max([0] ++ Blocks),
-    NewNextBlock = max(State#state.next_block, MaxBlock + 1),
-
-    NewBlockHost =
-        lists:foldl(fun(Block, Acc) -> maps:put(Block, Host, Acc) end,
-                    State#state.block_host,
-                    Blocks),
-
-    NewHostBlocks = maps:put(Host, Blocks, State#state.host_blocks),
-    io:format("new host ~s with blocks ~w~n", [Host, Blocks]),
-    NewState =
-        State#state{next_block = NewNextBlock,
-                    block_host = NewBlockHost,
-                    host_blocks = NewHostBlocks},
-    {reply, ok, NewState};
 handle_call({complete, File, Blocks}, _From, State) ->
     CurrentBlocks = maps:get(File, State#state.file_blocks, []),
     NewBlocks = CurrentBlocks ++ Blocks,
@@ -53,7 +37,8 @@ handle_call({complete, File, Blocks}, _From, State) ->
 handle_call({assign, Size}, _From, State) ->
     BlockCount = (Size + 7) div 8,
     {BlockAssignments, NewState} = allocate(State, BlockCount),
-    io:format("assign for size ~p ~w~n", [Size, BlockAssignments]),
+    io:format("assign for size ~p:~n", [Size]),
+    lists:map(fun ({Host, Block}) -> io:format("    host ~s block ~p~n", [Host, Block]) end, BlockAssignments),
     {reply, BlockAssignments, NewState};
 handle_call({read, File, Size, Offset}, _From, State) ->
     case maps:get(File, State#state.file_blocks, undefined) of
@@ -101,8 +86,22 @@ last_block_size(RemainingSize, Rem) when RemainingSize rem Rem > 0 ->
 last_block_size(RemainingSize, Rem) when RemainingSize rem Rem < 1 ->
     RemainingSize.
 
-handle_cast(_Msg, State) ->
-    {noreply, State}.
+handle_cast({register, Host, Blocks}, State) ->
+    MaxBlock = lists:max([0] ++ Blocks),
+    NewNextBlock = max(State#state.next_block, MaxBlock + 1),
+
+    NewBlockHost =
+        lists:foldl(fun(Block, Acc) -> maps:put(Block, Host, Acc) end,
+                    State#state.block_host,
+                    Blocks),
+
+    NewHostBlocks = maps:put(Host, Blocks, State#state.host_blocks),
+    io:format("new host ~s with blocks ~w~n", [Host, Blocks]),
+    NewState =
+        State#state{next_block = NewNextBlock,
+                    block_host = NewBlockHost,
+                    host_blocks = NewHostBlocks},
+    {noreply, NewState}.
 
 handle_info(_Info, State) ->
     {noreply, State}.
