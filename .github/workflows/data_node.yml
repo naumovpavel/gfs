@@ -12,7 +12,6 @@ jobs:
         working-directory: ./cli
     steps:
       - uses: actions/checkout@v3
-      - uses: erlef/setup-beam@v1
         with:
           otp-version: '26'
           rebar3-version: '3.22.1'
